@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDP - IAM Flow & Table Design Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #1a202c;
+            background: #f7fafc;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            border-bottom: 4px solid #4299e1;
+            padding-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #718096;
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: #2d3748;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-left: 1rem;
+            border-left: 6px solid #4299e1;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: #2d3748;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            color: #4a5568;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+
+        .intro {
+            background: #ebf8ff;
+            border-left: 4px solid #4299e1;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+        }
+
+        .intro strong {
+            color: #2c5282;
+        }
+
+        .flow {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .flow-number {
+            display: inline-block;
+            background: #4299e1;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .flow ol, .flow ul {
+            margin-left: 1.5rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .flow li {
+            margin-bottom: 0.5rem;
+        }
+
+        .flow-section {
+            background: white;
+            padding: 1rem;
+            border-left: 3px solid #48bb78;
+            margin-top: 1rem;
+            border-radius: 4px;
+        }
+
+        .flow-section strong {
+            color: #2f855a;
+        }
+
+        code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        thead {
+            background: #4299e1;
+            color: white;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        tbody tr:hover {
+            background: #f7fafc;
+        }
+
+        .entity-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .entity-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            transition: all 0.2s;
+        }
+
+        .entity-card:hover {
+            border-color: #4299e1;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .entity-card h4 {
+            color: #2b6cb0;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .entity-card p {
+            font-size: 0.9rem;
+            color: #4a5568;
+            margin-bottom: 0;
+        }
+
+        .decision {
+            background: #fffaf0;
+            border-left: 4px solid #ed8936;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+        }
+
+        .decision h4 {
+            color: #c05621;
+            margin-top: 0;
+        }
+
+        .option {
+            background: white;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .option strong {
+            color: #2b6cb0;
+        }
+
+        .recommendation {
+            background: #f0fff4;
+            border: 2px solid #48bb78;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .recommendation::before {
+            content: "✅ ";
+        }
+
+        .checklist {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .checklist li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .checklist li:last-child {
+            border-bottom: none;
+        }
+
+        .toc {
+            background: #edf2f7;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .toc h3 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        .toc ol {
+            margin-left: 1.5rem;
+        }
+
+        .toc a {
+            color: #2b6cb0;
+            text-decoration: none;
+            display: block;
+            padding: 0.25rem 0;
+        }
+
+        .toc a:hover {
+            color: #4299e1;
+            text-decoration: underline;
+        }
+
+        .phase-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .phase-1 {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .phase-2 {
+            background: #bee3f8;
+            color: #2a4365;
+        }
+
+        .phase-3 {
+            background: #faf089;
+            color: #744210;
+        }
+
+        .exercise {
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .exercise h4 {
+            color: #2b6cb0;
+            margin-top: 0;
+        }
+
+        .warning {
+            background: #fff5f5;
+            border-left: 4px solid #f56565;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+
+        .info {
+            background: #ebf8ff;
+            border-left: 4px solid #4299e1;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IDP - IAM Flow & Table Design Guide</h1>
+        <p class="subtitle">A structured guide to designing the Identity & Access Management foundation for the Internal Developer Portal</p>
+
+        <div class="intro">
+            <p><strong>The Engineering Method:</strong> Flow → Tables → Schema</p>
+            <p>Most beginners start with the schema and try to fit flows into it. That produces bad designs. You start with flows and let the schema emerge.</p>
+        </div>
+
+        <div class="toc">
+            <h3>Table of Contents</h3>
+            <ol>
+                <li><a href="#part1">Part 1: Phase 1 Flows (IAM Foundation)</a></li>
+                <li><a href="#part2">Part 2: Future Flows (Phases 2-5)</a></li>
+                <li><a href="#part3">Part 3: Entity Identification</a></li>
+                <li><a href="#part4">Part 4: Phase 1 Minimum Tables</a></li>
+                <li><a href="#part5">Part 5: Key Design Decisions</a></li>
+                <li><a href="#part6">Part 6: Relationships (Foreign Keys)</a></li>
+                <li><a href="#part7">Part 7: Schema Design Exercises</a></li>
+                <li><a href="#part8">Part 8: Future-Proofing Checklist</a></li>
+                <li><a href="#part9">Part 9: Recommended Build Order</a></li>
+            </ol>
+        </div>
+
+        <section id="part1">
+            <h2>Part 1: The Phase 1 Flow (IAM Foundation)</h2>
+            <p>These are the concrete user actions your system must support. Read them, then ask: "What tables do I need to make this work?"</p>
+
+            <div class="flow">
+                <span class="flow-number">Flow 1.1</span>
+                <h3>User Onboarding (Self-Registration)</h3>
+                <ol>
+                    <li>User opens the portal → sees login page</li>
+                    <li>User clicks "Sign Up"</li>
+                    <li>User submits: email, password, display name</li>
+                    <li>System creates User record (status: PENDING_VERIFICATION)</li>
+                    <li>System sends verification email with token</li>
+                    <li>User clicks link in email</li>
+                    <li>System marks email as verified (status: ACTIVE)</li>
+                    <li>User can now log in</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>What data is created?</strong></p>
+                    <ul>
+                        <li>User row (with hashed password, email_verified=false)</li>
+                        <li>EmailVerificationToken row (or just a token field)</li>
+                        <li>AuditLog entry: UserRegistered</li>
+                    </ul>
+                    <p><strong>What tables are touched?</strong></p>
+                    <ul>
+                        <li><code>users</code></li>
+                        <li><code>email_verifications</code> (or embedded in users)</li>
+                        <li><code>audit_logs</code></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 1.2</span>
+                <h3>Login + Session</h3>
+                <ol>
+                    <li>User submits email + password</li>
+                    <li>System verifies password (constant-time compare)</li>
+                    <li>System checks: email verified? account active? not locked?</li>
+                    <li>System creates Session row (with expiry)</li>
+                    <li>System sets HttpOnly cookie with session ID</li>
+                    <li>System creates AuditLog entry: UserLoggedIn</li>
+                    <li>User is redirected to dashboard</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>What tables are touched?</strong></p>
+                    <ul>
+                        <li><code>users</code> (read)</li>
+                        <li><code>sessions</code> (insert)</li>
+                        <li><code>audit_logs</code> (insert)</li>
+                        <li><code>login_attempts</code> (optional, for rate limiting)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 1.3</span>
+                <h3>Authenticated Request (Every API Call)</h3>
+                <ol>
+                    <li>Browser sends request with session cookie</li>
+                    <li>Middleware reads cookie → looks up session</li>
+                    <li>Middleware checks session expiry</li>
+                    <li>Middleware loads user + their org memberships + roles</li>
+                    <li>Middleware populates request context</li>
+                    <li>Handler runs authorization check</li>
+                    <li>Handler performs the action</li>
+                    <li>AuditLog entry created for sensitive actions</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>What tables are touched?</strong></p>
+                    <ul>
+                        <li><code>sessions</code> (read, possibly update last_seen)</li>
+                        <li><code>users</code> (read)</li>
+                        <li><code>organization_members</code> (read)</li>
+                        <li><code>roles</code> (read)</li>
+                        <li><code>permissions</code> (read)</li>
+                        <li><code>audit_logs</code> (insert for sensitive actions)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 1.4</span>
+                <h3>Organization Creation</h3>
+                <ol>
+                    <li>Authenticated user clicks "Create Organization"</li>
+                    <li>User submits: name, slug</li>
+                    <li>System creates Organization row</li>
+                    <li>System creates OrganizationMember row (user → org, role=OWNER)</li>
+                    <li>System creates AuditLog entry: OrganizationCreated</li>
+                    <li>System optionally creates default Project, Environments</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>What tables are touched?</strong></p>
+                    <ul>
+                        <li><code>organizations</code> (insert)</li>
+                        <li><code>organization_members</code> (insert)</li>
+                        <li><code>audit_logs</code> (insert)</li>
+                        <li><code>projects</code> (insert, if auto-create)</li>
+                        <li><code>environments</code> (insert, if auto-create)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 1.5</span>
+                <h3>Inviting a Member</h3>
+                <ol>
+                    <li>Org Owner enters invitee's email</li>
+                    <li>System creates Invitation row (token, expiry, role)</li>
+                    <li>System sends invitation email</li>
+                    <li>Invitee clicks link → registers or logs in</li>
+                    <li>System creates OrganizationMember row</li>
+                    <li>Invitation marked as ACCEPTED</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>What tables are touched?</strong></p>
+                    <ul>
+                        <li><code>invitations</code> (insert, update)</li>
+                        <li><code>organization_members</code> (insert)</li>
+                        <li><code>audit_logs</code> (insert)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 1.6</span>
+                <h3>Role-Based Access Check</h3>
+                <ol>
+                    <li>User attempts: "Delete project X in org Y"</li>
+                    <li>System checks: does user have membership in org Y?</li>
+                    <li>System checks: does user's role have permission "project:delete"?</li>
+                    <li>If yes → proceed</li>
+                    <li>If no → 403 Forbidden</li>
+                    <li>AuditLog entry: AuthorizationDenied (optional)</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>What tables are touched?</strong></p>
+                    <ul>
+                        <li><code>organization_members</code> (read)</li>
+                        <li><code>roles</code> (read)</li>
+                        <li><code>role_permissions</code> (read)</li>
+                        <li><code>permissions</code> (read)</li>
+                        <li><code>audit_logs</code> (insert on denial, optional)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="part2">
+            <h2>Part 2: The Future Flows (Phases 2-5)</h2>
+            <p>Now think ahead: what tables do these flows need?</p>
+
+            <div class="flow">
+                <span class="flow-number">Flow 2.1</span>
+                <span class="phase-badge phase-2">Phase 2</span>
+                <h3>Configuration Management</h3>
+                <ol>
+                    <li>Project admin navigates to env "production"</li>
+                    <li>Admin adds config: key=API_URL, value=https://api.example.com</li>
+                    <li>System creates Configuration row (version=1)</li>
+                    <li>Admin updates value → new version=2, old version preserved</li>
+                    <li>Admin rolls back to version 1 → new version=3 with old value</li>
+                    <li>AuditLog entry for each change</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>Tables needed:</strong></p>
+                    <ul>
+                        <li><code>configurations</code></li>
+                        <li><code>configuration_versions</code> (or version column on configurations)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 2.2</span>
+                <span class="phase-badge phase-2">Phase 2</span>
+                <h3>Secret Management</h3>
+                <ol>
+                    <li>Admin adds secret: key=DATABASE_PASSWORD, value=***</li>
+                    <li>System encrypts value, stores encrypted blob</li>
+                    <li>System creates Secret row (version=1)</li>
+                    <li>Admin reveals secret → system decrypts, returns value once</li>
+                    <li>AuditLog entry: SecretRevealed (CRITICAL - must log who, when, why)</li>
+                    <li>Admin rotates secret → new version=2</li>
+                    <li>Old versions preserved for retention period</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>Tables needed:</strong></p>
+                    <ul>
+                        <li><code>secrets</code> (metadata + encrypted value reference)</li>
+                        <li><code>secret_versions</code></li>
+                        <li><code>secret_access_logs</code> (or just audit_logs)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 2.3</span>
+                <span class="phase-badge phase-2">Phase 2</span>
+                <h3>Deployment Tracking</h3>
+                <ol>
+                    <li>Developer triggers deployment to "staging" environment</li>
+                    <li>System creates Deployment row (status=PENDING)</li>
+                    <li>Worker picks up job, starts deployment</li>
+                    <li>System updates: status=RUNNING, started_at=now</li>
+                    <li>Deployment succeeds → status=SUCCEEDED, completed_at=now</li>
+                    <li>Or fails → status=FAILED, failure_reason="..."</li>
+                    <li>AuditLog entry for deployment action</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>Tables needed:</strong></p>
+                    <ul>
+                        <li><code>deployments</code></li>
+                        <li><code>deployment_events</code> (or just status history)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 2.4</span>
+                <span class="phase-badge phase-1">Phase 1+</span>
+                <h3>Project + Environment Management</h3>
+                <ol>
+                    <li>Org Owner creates Project</li>
+                    <li>System auto-creates default environments: dev, staging, production</li>
+                    <li>Each environment has a protection level</li>
+                    <li>Each environment can have configs, secrets, deployments</li>
+                    <li>Production requires stricter permissions</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>Tables needed:</strong></p>
+                    <ul>
+                        <li><code>projects</code></li>
+                        <li><code>environments</code></li>
+                        <li><code>project_members</code> (if you want project-scoped roles)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 2.5</span>
+                <span class="phase-badge phase-2">Phase 2</span>
+                <h3>Background Jobs</h3>
+                <ol>
+                    <li>System needs to send invitation email</li>
+                    <li>System enqueues job: { type: 'send-invitation', payload: {...} }</li>
+                    <li>Worker picks up job, processes it</li>
+                    <li>Worker updates job status</li>
+                    <li>On failure, retry with backoff</li>
+                    <li>After N retries, move to dead-letter queue</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>Tables needed:</strong></p>
+                    <ul>
+                        <li><code>jobs</code> (or use BullMQ's built-in storage in Redis)</li>
+                        <li><code>job_history</code> (or just logs)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 2.6</span>
+                <span class="phase-badge phase-2">Phase 2</span>
+                <h3>Notifications</h3>
+                <ol>
+                    <li>System event occurs (e.g., deployment succeeds)</li>
+                    <li>System creates Notification row for relevant users</li>
+                    <li>Users see notifications in their inbox</li>
+                    <li>User marks notification as read</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>Tables needed:</strong></p>
+                    <ul>
+                        <li><code>notifications</code></li>
+                        <li><code>notification_preferences</code> (per-user settings)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 2.7</span>
+                <span class="phase-badge phase-1">Phase 1+</span>
+                <h3>Audit Log Querying</h3>
+                <ol>
+                    <li>Admin opens audit log viewer</li>
+                    <li>Admin filters: org=acme, action=secret.revealed, date_range=last-week</li>
+                    <li>System queries audit_logs with filters</li>
+                    <li>Admin can export results</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>Tables needed:</strong></p>
+                    <ul>
+                        <li><code>audit_logs</code> (with proper indexes for filtering)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 2.8</span>
+                <span class="phase-badge phase-3">Phase 3</span>
+                <h3>API Catalog</h3>
+                <ol>
+                    <li>Project admin registers an API: name, version, base URL, owner</li>
+                    <li>System creates ApiCatalogEntry row</li>
+                    <li>Other users can search/filter the catalog</li>
+                    <li>Future: import from OpenAPI spec files</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>Tables needed:</strong></p>
+                    <ul>
+                        <li><code>api_catalog_entries</code></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 2.9</span>
+                <span class="phase-badge phase-3">Phase 3</span>
+                <h3>Infrastructure Registry</h3>
+                <ol>
+                    <li>Project admin registers a resource: type=database, name=users-db, env=production</li>
+                    <li>System creates InfrastructureResource row</li>
+                    <li>Admin can add dependencies: this resource depends on that one</li>
+                    <li>Future: automated discovery</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>Tables needed:</strong></p>
+                    <ul>
+                        <li><code>infrastructure_resources</code></li>
+                        <li><code>infrastructure_dependencies</code> (or use a graph table)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 2.10</span>
+                <span class="phase-badge phase-3">Phase 3</span>
+                <h3>Logs & Metrics Viewer</h3>
+                <ol>
+                    <li>Developer opens logs viewer for environment "production"</li>
+                    <li>Developer filters by severity=ERROR, time_range=last-hour</li>
+                    <li>System displays structured logs (with sensitive values masked)</li>
+                    <li>Developer clicks correlation ID → see all related logs</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>Tables needed:</strong></p>
+                    <ul>
+                        <li><code>application_logs</code> (or use external log store like CloudWatch)</li>
+                        <li><code>log_retention_policies</code> (optional)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 2.11</span>
+                <span class="phase-badge phase-2">Phase 2</span>
+                <h3>Health Checks</h3>
+                <ol>
+                    <li>System periodically checks: database, queue, external dependencies</li>
+                    <li>Health check worker writes to health_check_results table</li>
+                    <li>UI displays "All systems operational" or specific degradation</li>
+                    <li>Historical health data available for trend analysis</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>Tables needed:</strong></p>
+                    <ul>
+                        <li><code>health_checks</code> (definition: what to check)</li>
+                        <li><code>health_check_results</code> (history: when, status, duration)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flow">
+                <span class="flow-number">Flow 2.12</span>
+                <span class="phase-badge phase-3">Phase 3</span>
+                <h3>Multi-Cloud Deployment Tracking</h3>
+                <ol>
+                    <li>Org wants to deploy some resources to AWS, others to GCP</li>
+                    <li>System tracks which provider each resource uses</li>
+                    <li>Cost comparison per provider</li>
+                    <li>Future: automated deployment to multiple clouds</li>
+                </ol>
+                <div class="flow-section">
+                    <p><strong>Tables needed:</strong></p>
+                    <ul>
+                        <li>(probably extends infrastructure_resources with provider column)</li>
+                        <li><code>cost_records</code></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="part3">
+            <h2>Part 3: The Tables You Should Identify</h2>
+            <p>Now step back and look at all those flows. <strong>What nouns keep appearing?</strong></p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Noun (Entity)</th>
+                        <th>Appears In Which Flows</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>User</strong></td>
+                        <td>1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 2.1-2.10 (as actor)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Session</strong></td>
+                        <td>1.2, 1.3</td>
+                    </tr>
+                    <tr>
+                        <td><strong>EmailVerification</strong></td>
+                        <td>1.1</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LoginAttempt</strong> (optional)</td>
+                        <td>1.2</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Organization</strong></td>
+                        <td>1.4, 1.5, 1.6, 2.1-2.10</td>
+                    </tr>
+                    <tr>
+                        <td><strong>OrganizationMember</strong></td>
+                        <td>1.4, 1.5, 1.6</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Invitation</strong></td>
+                        <td>1.5</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Role</strong></td>
+                        <td>1.4, 1.5, 1.6</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Permission</strong></td>
+                        <td>1.6</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Project</strong></td>
+                        <td>2.1, 2.3, 2.4, 2.8, 2.9</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Environment</strong></td>
+                        <td>2.1, 2.2, 2.3, 2.4, 2.9, 2.10</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Configuration</strong></td>
+                        <td>2.1</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Secret</strong></td>
+                        <td>2.2</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Deployment</strong></td>
+                        <td>2.3</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Notification</strong></td>
+                        <td>2.6</td>
+                    </tr>
+                    <tr>
+                        <td><strong>AuditLog</strong></td>
+                        <td>All flows</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ApiCatalogEntry</strong></td>
+                        <td>2.8</td>
+                    </tr>
+                    <tr>
+                        <td><strong>InfrastructureResource</strong></td>
+                        <td>2.9, 2.12</td>
+                    </tr>
+                    <tr>
+                        <td><strong>HealthCheck</strong></td>
+                        <td>2.11</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p><strong>That's ~19 entities.</strong> You don't need all of them on day one.</p>
+        </section>
+
+        <section id="part4">
+            <h2>Part 4: The Phase 1 Minimum (Start Here)</h2>
+            <p>For Milestone 1 (IAM Foundation), you only need:</p>
+
+            <h3>Core Identity</h3>
+            <div class="entity-list">
+                <div class="entity-card">
+                    <h4>User</h4>
+                    <p>People who log in</p>
+                </div>
+                <div class="entity-card">
+                    <h4>Session</h4>
+                    <p>Active login sessions</p>
+                </div>
+                <div class="entity-card">
+                    <h4>EmailVerification</h4>
+                    <p>Pending email verifications</p>
+                </div>
+                <div class="entity-card">
+                    <h4>PasswordReset</h4>
+                    <p>Pending password resets (optional initially)</p>
+                </div>
+            </div>
+
+            <h3>Tenancy</h3>
+            <div class="entity-list">
+                <div class="entity-card">
+                    <h4>Organization</h4>
+                    <p>Tenants</p>
+                </div>
+                <div class="entity-card">
+                    <h4>OrganizationMember</h4>
+                    <p>User ↔ org with role</p>
+                </div>
+                <div class="entity-card">
+                    <h4>Invitation</h4>
+                    <p>Pending org invitations</p>
+                </div>
+            </div>
+
+            <h3>Authorization</h3>
+            <div class="entity-list">
+                <div class="entity-card">
+                    <h4>Role</h4>
+                    <p>Named role bundles (Owner, Admin, Developer, Viewer)</p>
+                </div>
+                <div class="entity-card">
+                    <h4>Permission</h4>
+                    <p>Atomic permissions (<code>project:create</code>, <code>secret:reveal</code>, etc.)</p>
+                </div>
+                <div class="entity-card">
+                    <h4>RolePermission</h4>
+                    <p>Many-to-many: which permissions each role has</p>
+                </div>
+            </div>
+
+            <h3>Audit</h3>
+            <div class="entity-list">
+                <div class="entity-card">
+                    <h4>AuditLog</h4>
+                    <p>Immutable record of sensitive actions</p>
+                </div>
+            </div>
+
+            <div class="recommendation">
+                <strong>That's 11 tables for Phase 1.</strong> You can defer the rest until you need them.
+            </div>
+        </section>
+
+        <section id="part5">
+            <h2>Part 5: The Key Design Decisions to Make Yourself</h2>
+            <p>These are the decisions that will shape your schema. Think through each one.</p>
+
+            <div class="decision">
+                <h4>Decision 1: How do you model user identity?</h4>
+                <div class="option">
+                    <strong>Option A:</strong> Single <code>users</code> table<br>
+                    <code>id, email, password_hash, email_verified, status, created_at</code>
+                </div>
+                <div class="option">
+                    <strong>Option B:</strong> Separate <code>auth_identity</code> table<br>
+                    <code>users</code> (profile) + <code>identities</code> (auth methods: password, OAuth, etc.)<br>
+                    More flexible, supports multiple auth methods per user. More complex, not needed for Phase 1.
+                </div>
+                <div class="recommendation">
+                    <strong>For Phase 1, Option A is fine.</strong> Option B is a Phase 2+ improvement.
+                </div>
+            </div>
+
+            <div class="decision">
+                <h4>Decision 2: How do you model org membership?</h4>
+                <div class="option">
+                    <strong>Option A:</strong> <code>organization_members</code> table (<code>user_id, org_id, role_id, status</code>)<br>
+                    Simple many-to-many. One user can be in many orgs.
+                </div>
+                <div class="option">
+                    <strong>Option B:</strong> Separate <code>membership_invitations</code> + <code>memberships</code><br>
+                    Invitations and memberships as separate concepts. Cleaner audit trail.
+                </div>
+                <div class="option">
+                    <strong>Option C:</strong> Membership with embedded role (no separate Role table)<br>
+                    <code>organization_members</code> has role as enum. Simplest, but less flexible.
+                </div>
+                <div class="recommendation">
+                    <strong>For Phase 1, Option A is the standard pattern.</strong> Decide if role is an enum (simple) or a table (flexible).
+                </div>
+            </div>
+
+            <div class="decision">
+                <h4>Decision 3: How do you model permissions?</h4>
+                <div class="option">
+                    <strong>Option A:</strong> Hardcoded permission strings<br>
+                    <code>'project:create'</code>, <code>'secret:reveal'</code>, etc.<br>
+                    Checked in code. Simple, but changes require code deploy.
+                </div>
+                <div class="option">
+                    <strong>Option B:</strong> Permissions in database (<code>roles + role_permissions + permissions</code>)<br>
+                    Database-driven, changes don't need code deploy. More flexible, but more complex. What your PRD implies (permission matrix).
+                </div>
+                <div class="option">
+                    <strong>Option C:</strong> Hybrid (default permissions seeded in DB, can be customized)<br>
+                    Most flexible. Overkill for Phase 1.
+                </div>
+                <div class="recommendation">
+                    <strong>For Phase 1, Option B matches your PRD's permission matrix.</strong> Seed it with the 6 default roles from your PRD.
+                </div>
+            </div>
+
+            <div class="decision">
+                <h4>Decision 4: How do you model sessions?</h4>
+                <div class="option">
+                    <strong>Option A:</strong> Full session row in DB<br>
+                    <code>session_id, user_id, ip, user_agent, expires_at, created_at</code><br>
+                    Server can revoke instantly. DB hit on every request (or cache in Redis).
+                </div>
+                <div class="option">
+                    <strong>Option B:</strong> Stateless JWT<br>
+                    Token contains user info, signed. No DB hit, but can't revoke instantly.<br>
+                    <strong>Not recommended for secrets-managing platform.</strong>
+                </div>
+                <div class="option">
+                    <strong>Option C:</strong> Session ID + Redis storage<br>
+                    <code>session_id</code> in cookie, session data in Redis. Fast, revocable, scales well. Best of both worlds.
+                </div>
+                <div class="recommendation">
+                    <strong>For Phase 1, Option A (DB-backed) is simplest. Option C is the serverless-ready upgrade.</strong>
+                </div>
+            </div>
+
+            <div class="decision">
+                <h4>Decision 5: How do you model audit logs?</h4>
+                <div class="option">
+                    <strong>Option A:</strong> Single <code>audit_logs</code> table for everything<br>
+                    All events in one table, filter by <code>entity_type</code>. Simple, one place to query.
+                </div>
+                <div class="option">
+                    <strong>Option B:</strong> Separate tables per entity (<code>project_audit</code>, <code>secret_audit</code>, etc.)<br>
+                    Cleaner per-entity schemas. Harder to query "all events for user X."
+                </div>
+                <div class="option">
+                    <strong>Option C:</strong> Hybrid (event store pattern)<br>
+                    <code>events</code> table (immutable) + projections. Most powerful, most complex.
+                </div>
+                <div class="recommendation">
+                    <strong>For Phase 1, Option A is standard.</strong> Your PRD says "filter by organization, project, actor, action, date range" — one table works.
+                </div>
+            </div>
+
+            <div class="decision">
+                <h4>Decision 6: How do you handle soft delete?</h4>
+                <div class="option">
+                    <strong>Option A:</strong> <code>deleted_at</code> timestamp on every table<br>
+                    Soft delete by setting timestamp. Filter <code>WHERE deleted_at IS NULL</code> everywhere. Simple, works.
+                </div>
+                <div class="option">
+                    <strong>Option B:</strong> Separate archive tables<br>
+                    Active data + archive data. Cleaner performance for huge tables. More complex.
+                </div>
+                <div class="option">
+                    <strong>Option C:</strong> Status enum (ACTIVE, ARCHIVED, DELETED)<br>
+                    More explicit than <code>deleted_at</code>. PRD uses this for Organization/Project states.
+                </div>
+                <div class="recommendation">
+                    <strong>For Phase 1, Option C matches your PRD's state machines.</strong> Use a <code>status</code> field where appropriate.
+                </div>
+            </div>
+
+            <div class="decision">
+                <h4>Decision 7: How do you model environment protection levels?</h4>
+                <div class="option">
+                    <strong>Option A:</strong> Enum (LOW, MEDIUM, HIGH, CRITICAL)<br>
+                    Simple, fits PRD's "production requires stricter permissions." Stored as integer or string.
+                </div>
+                <div class="option">
+                    <strong>Option B:</strong> Separate <code>protection_level</code> table<br>
+                    More flexible (can add custom levels). Overkill for Phase 1.
+                </div>
+                <div class="recommendation">Option A. Match the PRD.</div>
+            </div>
+
+            <div class="decision">
+                <h4>Decision 8: How do you track who created/updated a record?</h4>
+                <div class="option">
+                    <strong>Option A:</strong> <code>created_by_id, updated_by_id</code> on every table<br>
+                    Foreign key to users. Standard audit fields.
+                </div>
+                <div class="option">
+                    <strong>Option B:</strong> Rely on <code>audit_logs</code> for this info<br>
+                    Less duplication. But harder to query "show me all projects I created."
+                </div>
+                <div class="recommendation">
+                    <strong>For Phase 1, Option A on critical tables (orgs, projects, environments, configs, secrets).</strong>
+                </div>
+            </div>
+        </section>
+
+        <section id="part6">
+            <h2>Part 6: The Relationships (Foreign Keys)</h2>
+            <p>Once you have your entities, map the relationships.</p>
+
+            <div class="info">
+                <p><strong>Note on diagram notation:</strong> Each arrow shows a relationship between tables. "1:M" means one parent record relates to many child records. "M:N" means many-to-many (requires a join table).</p>
+            </div>
+
+            <h3>Identity Relationships</h3>
+            <pre>
+User ──────────┐
+              │ (1:M)
+              ▼
+          Session</pre>
+
+            <h3>Tenancy Relationships</h3>
+            <pre>
+User ──────────┐
+              │ (M:N via OrganizationMember)
+              ▼
+       Organization ──────────┐
+              │              │ (1:M)
+              │              ▼
+              │           Project
+              │              │ (1:M)
+              │              ▼
+              │         Environment ──────┐
+              │              │ (1:M)       │ (1:M)
+              │              ├──► Configuration
+              │              ├──► Secret
+              │              └──► Deployment
+              │
+              │ (1:M)
+              ▼
+         Invitation</pre>
+
+            <h3>Authorization Relationships</h3>
+            <pre>
+Role ──────────┐
+              │ (M:N via RolePermission)
+              ▼
+          Permission
+
+OrganizationMember ────► User
+OrganizationMember ────► Organization
+OrganizationMember ────► Role</pre>
+
+            <h3>Audit Relationships</h3>
+            <pre>
+AuditLog ────► User (actor)
+AuditLog ────► Organization (optional)
+AuditLog ────► Project (optional)
+AuditLog ────► Environment (optional)</pre>
+        </section>
+
+        <section id="part7">
+            <h2>Part 7: The Schema Design Exercises</h2>
+            <p>Now <strong>you</strong> design. Here's a structured way to do it.</p>
+
+            <div class="exercise">
+                <h4>Exercise 1: List Your Entities</h4>
+                <p>Write down every entity from Part 4 (the 11 tables for Phase 1). Don't worry about columns yet.</p>
+            </div>
+
+            <div class="exercise">
+                <h4>Exercise 2: List The Columns For Each</h4>
+                <p>For each entity, ask: "What facts do I need to know about this?"</p>
+                <p><strong>Example for User:</strong></p>
+                <ul class="checklist">
+                    <li><code>id</code> (unique identifier)</li>
+                    <li><code>email</code> (login)</li>
+                    <li><code>password_hash</code> (authentication)</li>
+                    <li><code>display_name</code> (UI)</li>
+                    <li><code>email_verified</code> (state)</li>
+                    <li><code>status</code> (active/suspended/pending)</li>
+                    <li><code>created_at, updated_at</code> (audit)</li>
+                    <li><code>last_login_at</code> (optional, for security)</li>
+                    <li><code>failed_login_count</code> (for lockout)</li>
+                </ul>
+            </div>
+
+            <div class="exercise">
+                <h4>Exercise 3: Identify Primary Keys</h4>
+                <p>UUID vs auto-increment integer? Pros/cons of each?</p>
+                <p><em>Hint: UUIDs are better for distributed systems, but ints are simpler. Your call.</em></p>
+            </div>
+
+            <div class="exercise">
+                <h4>Exercise 4: Identify Foreign Keys</h4>
+                <p>For each entity, what other entities does it reference?</p>
+                <ul class="checklist">
+                    <li>OrganizationMember → User, Organization, Role</li>
+                    <li>AuditLog → User (actor), Organization (optional), etc.</li>
+                </ul>
+            </div>
+
+            <div class="exercise">
+                <h4>Exercise 5: Identify Indexes</h4>
+                <p>What queries will be frequent?</p>
+                <ul class="checklist">
+                    <li>Login: <code>WHERE email = ?</code></li>
+                    <li>Session lookup: <code>WHERE id = ?</code></li>
+                    <li>Audit query: <code>WHERE organization_id = ? AND created_at &gt; ?</code></li>
+                    <li>Membership check: <code>WHERE user_id = ? AND organization_id = ?</code></li>
+                </ul>
+            </div>
+
+            <div class="exercise">
+                <h4>Exercise 6: Identify Constraints</h4>
+                <p>What rules must the database enforce?</p>
+                <ul class="checklist">
+                    <li>UNIQUE on email</li>
+                    <li>NOT NULL on critical fields</li>
+                    <li>CHECK constraints (e.g., role must be valid)</li>
+                    <li>Foreign key constraints with ON DELETE behavior</li>
+                </ul>
+            </div>
+
+            <div class="exercise">
+                <h4>Exercise 7: Identify Enums vs Tables</h4>
+                <ul class="checklist">
+                    <li>Role: enum or table? (You decide based on Decision 3)</li>
+                    <li>Permission: enum or table? (You decide)</li>
+                    <li>Status: enum or table? (Usually enum)</li>
+                    <li>Environment type (dev/staging/prod): enum? (Yes)</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="part8">
+            <h2>Part 8: The Future-Proofing Checklist</h2>
+            <p>Before you write your schema, check it against these:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Concern</th>
+                        <th>How Your Schema Should Handle It</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Multi-tenancy</strong></td>
+                        <td>Every business entity has <code>organization_id</code> (or is scoped via org)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Soft delete</strong></td>
+                        <td><code>status</code> or <code>deleted_at</code> on entities that can be archived</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Audit trail</strong></td>
+                        <td><code>created_at, updated_at, created_by, updated_by</code> on critical tables</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tenant isolation</strong></td>
+                        <td>All queries include <code>organization_id</code> in <code>WHERE</code> clause</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Future: configs/secrets</strong></td>
+                        <td>Configuration and Secret will be similar; design them consistently</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Future: deployments</strong></td>
+                        <td>Deployment references project + environment</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Future: notifications</strong></td>
+                        <td>Notification references user + optional org/project</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Future: multi-cloud</strong></td>
+                        <td>Consider a <code>provider</code> column early on infrastructure_resources</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Migration path</strong></td>
+                        <td>Schema is in Prisma, so you can evolve with <code>prisma migrate</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="part9">
+            <h2>Part 9: The Recommended Order to Build Your Schema</h2>
+            <ol>
+                <li><strong>User + Session</strong> — the absolute core</li>
+                <li><strong>Organization + OrganizationMember</strong> — tenancy</li>
+                <li><strong>Role + Permission + RolePermission</strong> — RBAC</li>
+                <li><strong>AuditLog</strong> — cross-cutting</li>
+                <li><strong>Invitation</strong> — membership growth</li>
+                <li><strong>EmailVerification + PasswordReset</strong> — auth flows</li>
+            </ol>
+
+            <h3>Then Later Phases</h3>
+            <ol start="7">
+                <li><strong>Project + Environment</strong></li>
+                <li><strong>Configuration</strong></li>
+                <li><strong>Secret</strong></li>
+                <li><strong>Deployment</strong></li>
+                <li><strong>Notification</strong></li>
+                <li><strong>ApiCatalogEntry</strong></li>
+                <li><strong>InfrastructureResource</strong></li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>The One Question I Want You to Ask Yourself</h2>
+            <div class="warning">
+                <p>Before you write a single line of Prisma schema, answer this:</p>
+                <p style="font-size: 1.2rem; font-weight: 600; color: #c53030;">
+                    "If I had to query 'all secret reveals in the last 30 days across all orgs,' what tables and what indexes would make that fast?"
+                </p>
+            </div>
+
+            <p>If you can answer that confidently, your schema is well-designed. If you can't, you need to think more.</p>
+
+            <p>This is the kind of question senior engineers ask. It forces you to think about:</p>
+            <ul>
+                <li>What tables exist</li>
+                <li>How they relate</li>
+                <li>What indexes support the query</li>
+                <li>Whether your tenant model works</li>
+            </ul>
+
+            <div class="recommendation">
+                <strong>Try it. Then write your schema. Then we'll review it together.</strong>
+            </div>
+        </section>
+
+        <section>
+            <h2>What's Next?</h2>
+            <p>Once you've drafted your schema, share it with me and I'll:</p>
+            <ul>
+                <li><strong>Review it</strong> for missing fields, bad relationships, performance traps</li>
+                <li><strong>Suggest indexes</strong> for the common queries</li>
+                <li><strong>Validate it</strong> against your PRD requirements</li>
+                <li><strong>Show you the Prisma syntax</strong> for any patterns you might not know</li>
+            </ul>
+
+            <p>You can also ask me questions like:</p>
+            <ul>
+                <li>"Should I use UUID or auto-increment IDs?"</li>
+                <li>"How do I model this many-to-many relationship?"</li>
+                <li>"Should I use enums or string fields?"</li>
+                <li>"How do I add Row-Level Security to this?"</li>
+            </ul>
+
+            <p>Take your time. Design the schema. Then we'll iterate.</p>
+
+            <p><em>The best engineers I know spent 3x longer on data modeling than on code. You're investing in the right place.</em></p>
+        </section>
+    </div>
+</body>
+</html>

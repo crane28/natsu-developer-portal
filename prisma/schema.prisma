@@ -1,0 +1,183 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =====
+// Enums
+// =====
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum MemberStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+// ============================
+// Identity & Access Management
+// ============================
+model User {
+  id                 BigInt     @id @default(autoincrement())
+  publicId           String     @unique @default(uuid()) @map("public_id") @db.Uuid
+  email              String     @unique @db.VarChar(255)
+  passwordHash       String     @map("password_hash") @db.VarChar(255)
+  displayName        String     @map("display_name") @db.VarChar(255)
+  isEmailVerified    Boolean    @default(false) @map("is_email_verified")
+  status             UserStatus @default(PENDING_VERIFICATION)
+  failedLoginAttempt Int?       @map("failed_login_attempt")
+  lastLoggedIn       DateTime?  @map("last_logged_in")
+  lockedUntil        DateTime?  @map("locked_until")
+  tokenVersion       Int        @default(0) @map("token_version")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @default(now()) @map("updated_at")
+
+  memberships        OrganizationMember[] @relation("MembershipUser")
+  createdMemberships OrganizationMember[] @relation("MemberCreatedBy")
+  updatedMemberships OrganizationMember[] @relation("MemberUpdatedBy")
+
+  createdOrganizations Organization[] @relation("OrgCreatedBy")
+  updatedOrganizations Organization[] @relation("OrgUpdatedBy")
+
+  membershipUpdateHistories OrganizationMemberHistory[]
+  refreshTokens             RefreshToken[]
+
+  @@index([publicId, email, status])
+  @@map("users")
+}
+
+model Organization {
+  id        BigInt             @id @default(autoincrement())
+  publicId  String             @unique @default(uuid()) @map("public_id") @db.Uuid
+  slug      String             @unique @default("") @db.VarChar(255)
+  name      String             @default("") @db.VarChar(255)
+  status    OrganizationStatus @default(ACTIVE)
+  createdAt DateTime           @default(now()) @map("created_at")
+  createdBy BigInt             @map("created_by")
+  updatedAt DateTime           @default(now()) @map("updated_at")
+  updatedBy BigInt             @map("updated_by")
+  deletedAt DateTime?          @map("deleted_at")
+
+  createdByUser User @relation("OrgCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User @relation("OrgUpdatedBy", fields: [updatedBy], references: [id])
+
+  members OrganizationMember[]
+
+  @@index([publicId, slug, status])
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             BigInt       @id @default(autoincrement())
+  organizationId BigInt       @map("organization_id")
+  userId         BigInt       @map("user_id")
+  roleId         BigInt       @map("role_id")
+  status         MemberStatus @default(PENDING)
+  joinedAt       DateTime?    @map("joined_at")
+  removedAt      DateTime?    @map("removed_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  createdBy      BigInt       @map("created_by")
+  updatedAt      DateTime     @default(now()) @map("updated_at")
+  updatedBy      BigInt       @map("updated_by")
+
+  organization  Organization     @relation(fields: [organizationId], references: [id])
+  role          OrganizationRole @relation(fields: [roleId], references: [id])
+  member        User             @relation("MembershipUser", fields: [userId], references: [id])
+  createdByUser User             @relation("MemberCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User             @relation("MemberUpdatedBy", fields: [updatedBy], references: [id])
+
+  membershipHistories OrganizationMemberHistory[]
+
+  @@unique([organizationId, userId])
+  @@index([organizationId, userId, roleId])
+  @@map("organization_members")
+}
+
+model OrganizationMemberHistory {
+  id             BigInt   @id @default(autoincrement())
+  memberId       BigInt   @map("member_id")
+  previousDetail Json?    @default("{}") @map("previous_detail") @db.JsonB
+  detail         Json     @default("{}") @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at")
+  createdBy      BigInt   @map("created_by")
+
+  memberDetail  OrganizationMember @relation(fields: [memberId], references: [id])
+  createdByUser User               @relation(fields: [createdBy], references: [id])
+
+  @@map("organization_member_histories")
+}
+
+model OrganizationRole {
+  id        BigInt   @id @default(autoincrement())
+  name      String   @unique @default("") @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  organizationMembers         OrganizationMember[]
+  organizationRolePermissions OrganizationRolePermission[]
+
+  @@map("organization_roles")
+}
+
+model Permission {
+  id          BigInt   @id @default(autoincrement())
+  code        String   @unique @default("") @db.VarChar(255)
+  name        String   @default("") @db.VarChar(255)
+  description String   @default("") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  organizationRolePermissions OrganizationRolePermission[]
+
+  @@map("permissions")
+}
+
+model OrganizationRolePermission {
+  id           BigInt   @id @default(autoincrement())
+  roleId       BigInt   @map("role_id")
+  permissionId BigInt   @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  role       OrganizationRole @relation(fields: [roleId], references: [id])
+  permission Permission       @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+  @@index([roleId, permissionId])
+  @@map("organization_role_permissions")
+}
+
+model RefreshToken {
+  id        BigInt    @id @default(autoincrement())
+  userId    BigInt    @map("user_id")
+  familyId  String    @map("family_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash") @db.VarChar(255)
+  userAgent String    @map("user_agent") @db.VarChar(255)
+  ipAddress String    @map("ip_address") @db.VarChar(255)
+  revokedAt DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([familyId])
+}
