@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { hash, verify } from "argon2";
 
 import { UserService } from "../user/user.service.js";
-import { Prisma, User } from "../generated/prisma/client.js";
+import { Prisma, RefreshToken, User } from "../generated/prisma/client.js";
 import { RegisterRequest } from "./dtos/register/register.request.js";
 import { LoginRequest } from "./dtos/login/login.request.js";
 import { RegisterResponse } from "./dtos/register/register.response.js";
@@ -10,20 +10,23 @@ import { LoginResponse } from "./dtos/login/login.response.js";
 import moment from "moment";
 import { JwtModule, JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
-import { RefreshTokenService } from "../refresh-token/refresh-token.service.js";
+import { TokenService } from "../token/token.service.js";
+import { request } from "http";
+import { Request } from "express";
+import { RefreshTokenResponse } from "../token/dtos/refresh-token.response.js";
 
 @Injectable()
 export class AuthService {
     private readonly _userService: UserService;
     private readonly _jwtService: JwtService;
     private readonly _configService: ConfigService;
-    private readonly _refreshTokenService: RefreshTokenService;
+    private readonly _tokenService: TokenService;
 
-    constructor(userService: UserService, jwtService: JwtService, configService: ConfigService, refreshTokenService: RefreshTokenService) {
+    constructor(userService: UserService, jwtService: JwtService, configService: ConfigService, tokenService: TokenService) {
         this._userService = userService;
         this._jwtService = jwtService;
         this._configService = configService;
-        this._refreshTokenService = refreshTokenService;
+        this._tokenService = tokenService;
     }
 
     // #region -- Business Logic Methods
@@ -35,11 +38,7 @@ export class AuthService {
         return await this._userService.createUser(data.email, data.password, data.displayName);
     }
 
-    async login(
-        data: LoginRequest,
-        userAgent: string,
-        ipAddress: string
-    ): Promise<LoginResponse> {
+    async login(data: LoginRequest, request: Request): Promise<LoginResponse> {
         const user: User | null = await this._userService.findByEmail(data.email);
         if (user === null) {
             throw new UnauthorizedException("Email or Password is invalid.");
@@ -59,28 +58,15 @@ export class AuthService {
             throw new ForbiddenException("Your account is currently locked, please contact Administrator.");
         }
 
-        await this._userService.logSuccessLoginAttempt(user.publicId);
+        const accessToken: string = await this._tokenService.mintAccessToken(user)
+        const { refreshToken, row }: RefreshTokenResponse = await this._tokenService.mintRefreshToken(user, request);
 
-        const accessToken: string = await this.mintAccessToken(user);
-        const { token, row } = await this._refreshTokenService.mintRefreshToken(user, userAgent, ipAddress);
+        await this._userService.logSuccessLoginAttempt(user.publicId);
 
         return { accessToken, refreshToken };
     }
     // #endregion
 
     // #region -- Helper Methods
-    async mintAccessToken(user: User): Promise<string> {
-        const expDurationInSec: number = this._configService.get<number>('JWT_ACCESS_TOKEN_EXPIRATION') ?? 900;
-        const accessTokenSecret: string = this._configService.get<string>('JWT_ACCESS_TOKEN_SECRET')!;
-
-        return this._jwtService.signAsync({
-            sub: user.publicId,
-            email: user.email,
-            displayName: user.displayName
-        }, {
-            expiresIn: expDurationInSec,
-            secret: accessTokenSecret
-        });
-    }
     // #endregion
 }

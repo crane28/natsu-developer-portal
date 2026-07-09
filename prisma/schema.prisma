@@ -39,7 +39,7 @@ enum MemberStatus {
 // Identity & Access Management
 // ============================
 model User {
-  id                 BigInt     @id @default(autoincrement())
+  id                 BigInt     @id @default(autoincrement()) @db.BigInt
   publicId           String     @unique @default(uuid()) @map("public_id") @db.Uuid
   email              String     @unique @db.VarChar(255)
   passwordHash       String     @map("password_hash") @db.VarChar(255)
@@ -68,15 +68,15 @@ model User {
 }
 
 model Organization {
-  id        BigInt             @id @default(autoincrement())
+  id        BigInt             @id @default(autoincrement()) @db.BigInt
   publicId  String             @unique @default(uuid()) @map("public_id") @db.Uuid
   slug      String             @unique @default("") @db.VarChar(255)
   name      String             @default("") @db.VarChar(255)
   status    OrganizationStatus @default(ACTIVE)
   createdAt DateTime           @default(now()) @map("created_at")
-  createdBy BigInt             @map("created_by")
+  createdBy BigInt             @map("created_by") @db.BigInt
   updatedAt DateTime           @default(now()) @map("updated_at")
-  updatedBy BigInt             @map("updated_by")
+  updatedBy BigInt             @map("updated_by") @db.BigInt
   deletedAt DateTime?          @map("deleted_at")
 
   createdByUser User @relation("OrgCreatedBy", fields: [createdBy], references: [id])
@@ -89,17 +89,17 @@ model Organization {
 }
 
 model OrganizationMember {
-  id             BigInt       @id @default(autoincrement())
-  organizationId BigInt       @map("organization_id")
-  userId         BigInt       @map("user_id")
-  roleId         BigInt       @map("role_id")
+  id             BigInt       @id @default(autoincrement()) @db.BigInt
+  organizationId BigInt       @map("organization_id") @db.BigInt
+  userId         BigInt       @map("user_id") @db.BigInt
+  roleId         BigInt       @map("role_id") @db.BigInt
   status         MemberStatus @default(PENDING)
   joinedAt       DateTime?    @map("joined_at")
   removedAt      DateTime?    @map("removed_at")
   createdAt      DateTime     @default(now()) @map("created_at")
-  createdBy      BigInt       @map("created_by")
+  createdBy      BigInt       @map("created_by") @db.BigInt
   updatedAt      DateTime     @default(now()) @map("updated_at")
-  updatedBy      BigInt       @map("updated_by")
+  updatedBy      BigInt       @map("updated_by") @db.BigInt
 
   organization  Organization     @relation(fields: [organizationId], references: [id])
   role          OrganizationRole @relation(fields: [roleId], references: [id])
@@ -115,8 +115,8 @@ model OrganizationMember {
 }
 
 model OrganizationMemberHistory {
-  id             BigInt   @id @default(autoincrement())
-  memberId       BigInt   @map("member_id")
+  id             BigInt   @id @default(autoincrement()) @db.BigInt
+  memberId       BigInt   @map("member_id") @db.BigInt
   previousDetail Json?    @default("{}") @map("previous_detail") @db.JsonB
   detail         Json     @default("{}") @db.JsonB
   createdAt      DateTime @default(now()) @map("created_at")
@@ -129,7 +129,7 @@ model OrganizationMemberHistory {
 }
 
 model OrganizationRole {
-  id        BigInt   @id @default(autoincrement())
+  id        BigInt   @id @default(autoincrement()) @db.BigInt
   name      String   @unique @default("") @db.VarChar(255)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @map("updated_at")
@@ -141,7 +141,7 @@ model OrganizationRole {
 }
 
 model Permission {
-  id          BigInt   @id @default(autoincrement())
+  id          BigInt   @id @default(autoincrement()) @db.BigInt
   code        String   @unique @default("") @db.VarChar(255)
   name        String   @default("") @db.VarChar(255)
   description String   @default("") @db.Text
@@ -154,9 +154,9 @@ model Permission {
 }
 
 model OrganizationRolePermission {
-  id           BigInt   @id @default(autoincrement())
-  roleId       BigInt   @map("role_id")
-  permissionId BigInt   @map("permission_id")
+  id           BigInt   @id @default(autoincrement()) @db.BigInt
+  roleId       BigInt   @map("role_id") @db.BigInt
+  permissionId BigInt   @map("permission_id") @db.BigInt
   createdAt    DateTime @default(now()) @map("created_at")
 
   role       OrganizationRole @relation(fields: [roleId], references: [id])
@@ -168,8 +168,8 @@ model OrganizationRolePermission {
 }
 
 model RefreshToken {
-  id        BigInt    @id @default(autoincrement())
-  userId    BigInt    @map("user_id")
+  id        BigInt    @id @default(autoincrement()) @db.BigInt
+  userId    BigInt    @map("user_id") @db.BigInt
   familyId  String    @map("family_id") @db.Uuid
   tokenHash String    @unique @map("token_hash") @db.VarChar(255)
   userAgent String    @map("user_agent") @db.VarChar(255)

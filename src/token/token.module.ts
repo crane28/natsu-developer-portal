@@ -2,14 +2,14 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 
 import { PrismaModule } from '../prisma/prisma.module.js';
-import { RefreshTokenService } from './refresh-token.service.js';
+import { TokenService } from './token.service.js';
 
 @Module({
   imports: [
     PrismaModule,
     JwtModule
   ],
-  providers: [RefreshTokenService],
-  exports: [RefreshTokenService]
+  providers: [TokenService],
+  exports: [TokenService]
 })
-export class RefreshTokenModule { }
+export class TokenModule { }
