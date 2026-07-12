@@ -2,18 +2,24 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
-import { AuthModule } from '../auth/auth.module.js';
-import { PrismaModule } from '../prisma/prisma.module.js';
-import { UserModule } from '../user/user.module.js';
+import { AuthModule } from '../auth/auth.module';
+import { PrismaModule } from '../prisma/prisma.module';
+import { UsersModule } from '../users/users.module';
+import { OrganizationsModule } from '../organizations/organizations.module';
+import { ProjectsModule } from '../projects/projects.module';
+import { EnvironmentsModule } from '../environments/environments.module';
 import { ConfigModule } from '@nestjs/config';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
-    UserModule,
+    UsersModule,
     AuthModule,
+    OrganizationsModule,
+    ProjectsModule,
+    EnvironmentsModule,
     ThrottlerModule.forRoot([
       { ttl: 60_000, limit: 30 }
     ]),

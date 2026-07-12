@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 
-import { PrismaModule } from '../prisma/prisma.module.js';
-import { TokenService } from './token.service.js';
+import { PrismaModule } from '../prisma/prisma.module';
+import { TokenService } from './token.service';
 
 @Module({
   imports: [

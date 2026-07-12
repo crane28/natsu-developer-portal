@@ -1,31 +1,24 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
-import { hash, verify } from "argon2";
+import { verify } from "argon2";
 
-import { UserService } from "../user/user.service.js";
-import { Prisma, RefreshToken, User } from "../generated/prisma/client.js";
-import { RegisterRequest } from "./dtos/register/register.request.js";
-import { LoginRequest } from "./dtos/login/login.request.js";
-import { RegisterResponse } from "./dtos/register/register.response.js";
-import { LoginResponse } from "./dtos/login/login.response.js";
+import { UsersService } from "../users/users.service";
+import { User } from "../generated/prisma/client";
+import { RegisterRequest } from "./dtos/register/register.request";
+import { LoginRequest } from "./dtos/login/login.request";
+import { RegisterResponse } from "./dtos/register/register.response";
+import { LoginResponse } from "./dtos/login/login.response";
 import moment from "moment";
-import { JwtModule, JwtService } from "@nestjs/jwt";
-import { ConfigService } from "@nestjs/config";
-import { TokenService } from "../token/token.service.js";
-import { request } from "http";
+import { TokenService } from "../token/token.service";
 import { Request } from "express";
-import { RefreshTokenResponse } from "../token/dtos/refresh-token.response.js";
+import { RefreshTokenResponse } from "../token/dtos/refresh-token.response";
 
 @Injectable()
 export class AuthService {
-    private readonly _userService: UserService;
-    private readonly _jwtService: JwtService;
-    private readonly _configService: ConfigService;
+    private readonly _userService: UsersService;
     private readonly _tokenService: TokenService;
 
-    constructor(userService: UserService, jwtService: JwtService, configService: ConfigService, tokenService: TokenService) {
+    constructor(userService: UsersService, tokenService: TokenService) {
         this._userService = userService;
-        this._jwtService = jwtService;
-        this._configService = configService;
         this._tokenService = tokenService;
     }
 
@@ -65,8 +58,5 @@ export class AuthService {
 
         return { accessToken, refreshToken };
     }
-    // #endregion
-
-    // #region -- Helper Methods
     // #endregion
 }

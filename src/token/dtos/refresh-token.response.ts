@@ -1,4 +1,4 @@
-import { RefreshToken } from "../../generated/prisma/client.js";
+import { RefreshToken } from "../../generated/prisma/client";
 
 export class RefreshTokenResponse {
     refreshToken!: string;

@@ -35,6 +35,26 @@ enum MemberStatus {
   REMOVED
 }
 
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+  DISABLED
+}
+
+enum EnvironmentType {
+  DEVELOPMENT
+  TESTING
+  STAGING
+  PRODUCTION
+}
+
+enum EnvironmentStatus {
+  ACTIVE
+  LOCKED
+  ARCHIVED
+  DISABLED
+}
+
 // ============================
 // Identity & Access Management
 // ============================
@@ -60,8 +80,16 @@ model User {
   createdOrganizations Organization[] @relation("OrgCreatedBy")
   updatedOrganizations Organization[] @relation("OrgUpdatedBy")
 
+  createdProjects Project[] @relation("ProjectCreatedBy")
+  updatedProjects Project[] @relation("ProjectUpdatedBy")
+
+  createdEnvironments Environment[] @relation("EnvCreatedBy")
+  updatedEnvironments Environment[] @relation("EnvUpdatedBy")
+
   membershipUpdateHistories OrganizationMemberHistory[]
   refreshTokens             RefreshToken[]
+  auditLogs                 AuditLog[]      @relation("AuditLogActor")
+  exceptionLogs             ExceptionLog[]  @relation("ExceptionLogActor")
 
   @@index([publicId, email, status])
   @@map("users")
@@ -83,6 +111,9 @@ model Organization {
   updatedByUser User @relation("OrgUpdatedBy", fields: [updatedBy], references: [id])
 
   members OrganizationMember[]
+  projects Project[]
+  auditLogs AuditLog[]
+  exceptionLogs ExceptionLog[]
 
   @@index([publicId, slug, status])
   @@map("organizations")
@@ -167,6 +198,61 @@ model OrganizationRolePermission {
   @@map("organization_role_permissions")
 }
 
+// =======
+// Project
+// =======
+model Project {
+  id             BigInt        @id @default(autoincrement()) @db.BigInt
+  publicId       String        @unique @default(uuid()) @map("public_id") @db.Uuid
+  organizationId BigInt        @map("organization_id") @db.BigInt
+  name           String        @default("") @db.VarChar(255)
+  slug           String        @default("") @db.VarChar(255)
+  description    String        @default("") @db.Text
+  status         ProjectStatus @default(ACTIVE)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  createdBy      BigInt        @map("created_by") @db.BigInt
+  updatedAt      DateTime      @default(now()) @map("updated_at")
+  updatedBy      BigInt        @map("updated_by") @db.BigInt
+  deletedAt      DateTime?     @map("deleted_at")
+
+  organization Organization     @relation(fields: [organizationId], references: [id])
+  createdByUser User             @relation("ProjectCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User             @relation("ProjectUpdatedBy", fields: [updatedBy], references: [id])
+  environments  Environment[]
+  auditLogs     AuditLog[]
+
+  @@unique([organizationId, slug])
+  @@index([publicId, organizationId, status])
+  @@map("projects")
+}
+
+// ============
+// Environment
+// ============
+model Environment {
+  id              BigInt           @id @default(autoincrement()) @db.BigInt
+  publicId        String           @unique @default(uuid()) @map("public_id") @db.Uuid
+  projectId       BigInt           @map("project_id") @db.BigInt
+  name            String           @default("") @db.VarChar(255)
+  type            EnvironmentType  @default(DEVELOPMENT)
+  status          EnvironmentStatus @default(ACTIVE)
+  protectionLevel Int              @default(0) @map("protection_level")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  createdBy       BigInt           @map("created_by") @db.BigInt
+  updatedAt       DateTime         @default(now()) @map("updated_at")
+  updatedBy       BigInt           @map("updated_by") @db.BigInt
+  deletedAt       DateTime?        @map("deleted_at")
+
+  project       Project       @relation(fields: [projectId], references: [id])
+  createdByUser User          @relation("EnvCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User          @relation("EnvUpdatedBy", fields: [updatedBy], references: [id])
+  auditLogs     AuditLog[]
+
+  @@unique([projectId, name])
+  @@index([publicId, projectId, status])
+  @@map("environments")
+}
+
 model RefreshToken {
   id        BigInt    @id @default(autoincrement()) @db.BigInt
   userId    BigInt    @map("user_id") @db.BigInt
@@ -180,4 +266,66 @@ model RefreshToken {
 
   @@index([userId])
   @@index([familyId])
+}
+
+// =========
+// AuditLog
+// =========
+model AuditLog {
+  id               BigInt    @id @default(autoincrement()) @db.BigInt
+  actorId          BigInt?   @map("actor_id") @db.BigInt
+  organizationId   BigInt?   @map("organization_id") @db.BigInt
+  projectId        BigInt?   @map("project_id") @db.BigInt
+  environmentId    BigInt?   @map("environment_id") @db.BigInt
+  entityType       String    @map("entity_type") @db.VarChar(100)
+  entityId         String?   @map("entity_id") @db.VarChar(255)
+  action           String    @db.VarChar(100)
+  beforeState      Json?     @map("before_state") @db.JsonB
+  afterState       Json?     @map("after_state") @db.JsonB
+  ipAddress        String?   @map("ip_address") @db.VarChar(255)
+  userAgent        String?   @map("user_agent") @db.VarChar(255)
+  requestId        String?   @map("request_id") @db.VarChar(255)
+  correlationId    String?   @map("correlation_id") @db.VarChar(255)
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  actor          User?         @relation("AuditLogActor", fields: [actorId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  project        Project?      @relation(fields: [projectId], references: [id])
+  environment    Environment?  @relation(fields: [environmentId], references: [id])
+
+  @@index([actorId])
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([environmentId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ==============
+// ExceptionLog
+// ==============
+model ExceptionLog {
+  id               BigInt    @id @default(autoincrement()) @db.BigInt
+  actorId          BigInt?   @map("actor_id") @db.BigInt
+  organizationId   BigInt?   @map("organization_id") @db.BigInt
+  exceptionType    String    @map("exception_type") @db.VarChar(255)
+  message          String    @db.Text
+  stackTrace       String?   @map("stack_trace") @db.Text
+  httpMethod       String?   @map("http_method") @db.VarChar(10)
+  httpPath         String?   @map("http_path") @db.VarChar(500)
+  httpStatusCode   Int?      @map("http_status_code")
+  ipAddress        String?   @map("ip_address") @db.VarChar(255)
+  userAgent        String?   @map("user_agent") @db.VarChar(255)
+  requestId        String?   @map("request_id") @db.VarChar(255)
+  correlationId    String?   @map("correlation_id") @db.VarChar(255)
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  actor        User?        @relation("ExceptionLogActor", fields: [actorId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([actorId])
+  @@index([organizationId])
+  @@index([createdAt])
+  @@map("exception_logs")
 }
